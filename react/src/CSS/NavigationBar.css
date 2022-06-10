@@ -1,0 +1,40 @@
+form.searchArea button {
+    float: left;
+    width: 20%;
+
+    background: #2196F3;
+    color: white;
+    font-size: 17px;
+    border: 1px solid grey;
+    cursor: pointer;
+    border-left: none;
+}
+
+form.searchArea input {
+
+    border: 1px solid grey;
+}
+
+form.searchArea button:hover {
+    background: #0b7dda;
+}
+
+/* Clear floats */
+form.searchArea::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+#curr-account-text {
+    position:absolute;
+    margin-top: auto;
+    margin-left: 150px;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.search-div{
+    display:flex;
+    column-gap: 5px;
+}

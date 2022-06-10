@@ -1,0 +1,48 @@
+
+#description-paragraph {
+    text-align: left;
+    text-overflow: ellipsis;
+    overflow: hidden;
+
+}
+
+#description-paragraph-title{
+    text-align: left;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    text-decoration: underline;
+    margin-top: 5px;
+}
+
+#category-paragraph-title{
+    text-align: left;
+    margin-top: 1px;
+}
+
+#category-paragraph-modal-elem{
+    text-align: center;
+    margin-top: 1px;
+}
+
+#developer-text{
+    text-align: left;
+    position: absolute;
+    left: 2ch;
+}
+
+#rating-text{
+    text-align: center;
+    position: absolute;
+    margin-right: 200px;
+
+
+}
+
+.stars-rating{
+}
+
+.span_underline {
+
+    text-decoration: underline;
+
+}

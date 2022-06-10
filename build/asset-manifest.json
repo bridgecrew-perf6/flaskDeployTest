@@ -1,0 +1,19 @@
+{
+  "files": {
+    "main.css": "./static/css/main.30b428ce.css",
+    "main.js": "./static/js/main.8e0e7b78.js",
+    "static/js/787.5480e000.chunk.js": "./static/js/787.5480e000.chunk.js",
+    "static/media/fix-invalid-image-error.png": "./static/media/fix-invalid-image-error.76e093795189363c4fb8.png",
+    "static/media/settings.png": "./static/media/settings.1d52ed2b02c58ec05cfd.png",
+    "static/media/app_no_image_alt.jpg": "./static/media/app_no_image_alt.580cb3d1a615a498b0df.jpg",
+    "static/media/Audi_R8_2017_189_19_610_52_10_76_48_174_14_AWD_2_2_2dr_nUS.jpg": "./static/media/Audi_R8_2017_189_19_610_52_10_76_48_174_14_AWD_2_2_2dr_nUS.27769e6ab14cf9ba4a5f.jpg",
+    "index.html": "./index.html",
+    "main.30b428ce.css.map": "./static/css/main.30b428ce.css.map",
+    "main.8e0e7b78.js.map": "./static/js/main.8e0e7b78.js.map",
+    "787.5480e000.chunk.js.map": "./static/js/787.5480e000.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.30b428ce.css",
+    "static/js/main.8e0e7b78.js"
+  ]
+}
