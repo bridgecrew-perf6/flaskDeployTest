@@ -1,13 +1,9 @@
-from http import HTTPStatus
-import os
-from flask import Flask, Response, send_from_directory
 import json
+from time import sleep
 from web3 import Web3
 import asyncio
-from threading import Thread
 
 
-IS_HOSTED = False
 
 ######## Blockchain ##############
 # infura_url = 'https://rinkeby.infura.io/v3/7ac5f849f3984d56a7bea36e745ce0a4'
@@ -28,61 +24,26 @@ def handle_event(event):
 # asynchronous defined function to loop
 # this loop sets up an event filter and is looking for new entires for the "PairCreated" event
 # this loop runs on a poll interval
-async def log_loop(event_filter, poll_interval):
+def log_loop(event_filter, poll_interval):
     while True:
         for PairCreated in event_filter.get_new_entries():
             handle_event(PairCreated)
-        await asyncio.sleep(poll_interval)
+        sleep(poll_interval)
 
 
 def  blockchain_listen_task():
-    print("Blockching Listener Task START")
-
-
+    print("Blockching Listener Task START2")
 
     event_filter = contract.events.PairCreated.createFilter(fromBlock='latest')
     # loop = asyncio.get_event_loop()
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+
     try:
-        loop.run_until_complete(
-            asyncio.gather(
-                log_loop(event_filter, 2)
-                )
-            )
+        log_loop(event_filter, 2)
+      
     finally:
-        # close loop to free up system resources
         print("Blockching Listener Task END")
-
-        loop.close()
-
-###### SERVER ###############
-# statics_dir = os.path.abspath('./build')
-statics_dir = os.path.abspath('mysite/build') if IS_HOSTED else os.path.abspath('./build')
-
-
-
-app = Flask(__name__, static_folder=statics_dir)
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve(path):
-    print("static_folder = ", app.static_folder)
-    if path != "" and os.path.exists(app.static_folder + '/' + path):
-        return send_from_directory(app.static_folder, path)
-    elif path == '':
-        return send_from_directory(app.static_folder, 'index.html')
-    else:
-        return Response(status=HTTPStatus.NOT_FOUND, response="The page does not exist. Error 404.")
-
-@app.route("/hello")
-def hello_world():
-    return "<p>Hello, World!</p>"
 
 
 
 if __name__ == "__main__":
-
-    Thread(target=blockchain_listen_task).start()
-
-    # app.run(debug=True)
+    blockchain_listen_task()
