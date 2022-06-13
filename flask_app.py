@@ -2,65 +2,74 @@ from http import HTTPStatus
 import os
 from flask import Flask, Response, send_from_directory
 import json
-from web3 import Web3
-import asyncio
 from threading import Thread
+import psycopg2
+from urllib.parse import urlparse
 
+IS_HOSTED = True
 
-IS_HOSTED = False
-
-######## Blockchain ##############
-# infura_url = 'https://rinkeby.infura.io/v3/7ac5f849f3984d56a7bea36e745ce0a4'
-infura_url = 'https://mainnet.infura.io/v3/7ac5f849f3984d56a7bea36e745ce0a4'
-web3 = Web3(Web3.HTTPProvider(infura_url))
-
-uniswap_router = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
-uniswap_factory = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
-uniswap_factory_abi = json.loads('[{"inputs":[{"internalType":"address","name":"_feeToSetter","type":"address"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"token0","type":"address"},{"indexed":true,"internalType":"address","name":"token1","type":"address"},{"indexed":false,"internalType":"address","name":"pair","type":"address"},{"indexed":false,"internalType":"uint256","name":"","type":"uint256"}],"name":"PairCreated","type":"event"},{"constant":true,"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"allPairs","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"allPairsLength","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"tokenA","type":"address"},{"internalType":"address","name":"tokenB","type":"address"}],"name":"createPair","outputs":[{"internalType":"address","name":"pair","type":"address"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"feeTo","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"feeToSetter","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"getPair","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_feeTo","type":"address"}],"name":"setFeeTo","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_feeToSetter","type":"address"}],"name":"setFeeToSetter","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]')
-
-contract = web3.eth.contract(address=uniswap_factory, abi=uniswap_factory_abi)
-
-def handle_event(event):
-    print(Web3.toJSON(event))
-    # and whatever
-
-
-# asynchronous defined function to loop
-# this loop sets up an event filter and is looking for new entires for the "PairCreated" event
-# this loop runs on a poll interval
-async def log_loop(event_filter, poll_interval):
-    while True:
-        for PairCreated in event_filter.get_new_entries():
-            handle_event(PairCreated)
-        await asyncio.sleep(poll_interval)
-
-
-def  blockchain_listen_task():
-    print("Blockching Listener Task START")
+##DB CONNECTION
 
 
 
-    event_filter = contract.events.PairCreated.createFilter(fromBlock='latest')
-    # loop = asyncio.get_event_loop()
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+def get_db_connection():
+    result = urlparse("postgres://nofufthy:we3Erf889-HjVtanL4MF7mS0UsRvGf1T@dumbo.db.elephantsql.com/nofufthy")
+    username = result.username
+    password = result.password
+    database = result.path[1:]
+    hostname = result.hostname
+    port = result.port
+    db_connection = psycopg2.connect(
+        database = database,
+        user = username,
+        password = password,
+        host = hostname,
+        port = port
+    )
+    return db_connection
+
+    
+def db_fetch(db_connection, sql: str):
+    print("DB FETCH: " + sql)
     try:
-        loop.run_until_complete(
-            asyncio.gather(
-                log_loop(event_filter, 2)
-                )
-            )
-    finally:
-        # close loop to free up system resources
-        print("Blockching Listener Task END")
+        with db_connection.cursor() as cur:
+            
+            cur.execute(sql)
+            db_connection.commit() 
+            
+            res = tuple(cur.fetchall())
+            return res
 
-        loop.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print("SQL db_fetch Error: ", error)
+        return Tuple()
+
+def get_filtered_app_ids(db_connection, offset, length, textFilter, categoryFilter, ratingFilter):
+
+    sql = f"""SELECT id 
+            FROM public.apps 
+            WHERE 
+                (name ILIKE '%{textFilter}%' OR description ILIKE '%{textFilter}%')
+                AND
+                category ILIKE '%{categoryFilter}%' 
+                AND 
+                rating >= {ratingFilter} 
+            ORDER BY id ASC
+            OFFSET {offset} 
+            LIMIT {length};   
+        """
+    raw_res = db_fetch(db_connection, sql)
+    print("raw res: ", raw_res)
+    ids = [res[0] for res in raw_res]
+    
+    print("ids: ", ids)
+    return ids
+
+
+
 
 ###### SERVER ###############
-# statics_dir = os.path.abspath('./build')
 statics_dir = os.path.abspath('mysite/build') if IS_HOSTED else os.path.abspath('./build')
-
-
 
 app = Flask(__name__, static_folder=statics_dir)
 
@@ -79,10 +88,33 @@ def serve(path):
 def hello_world():
     return "<p>Hello, World!</p>"
 
+@app.route("/apps/filtered/<offset>/<length>/<rating_filter>/<category_filter>", methods=['GET'], defaults={'text_filter': ""})
+@app.route("/apps/filtered/<offset>/<length>/<rating_filter>/<category_filter>/", methods=['GET'], defaults={'text_filter': ""})
+@app.route("/apps/filtered/<offset>/<length>/<rating_filter>/<category_filter>/<text_filter>", methods=['GET'])
+
+def get_apps_filtered(offset, length, text_filter, rating_filter, category_filter):
+    
+    rating_filter = float(rating_filter)
+    
+        
+    if(category_filter == "ALL"):
+        category_filter = ""
+
+    # if text_filter is None or text_filter == "__ALL__":
+    
+    print("text_filter = ", text_filter, type(text_filter))
+    print("rating_filter = ", rating_filter, type(rating_filter))
+    print("category_filter = ", category_filter)
+    
+    ids = []
+    with get_db_connection() as conn:
+        ids = get_filtered_app_ids(conn, offset, length, text_filter, category_filter, rating_filter)
+        
+    
+    
+    return Response(status=HTTPStatus.OK, response=json.dumps(ids),  mimetype='application/json')
+
 
 
 if __name__ == "__main__":
-
-    Thread(target=blockchain_listen_task).start()
-
-    # app.run(debug=True)
+    app.run(debug=True)
