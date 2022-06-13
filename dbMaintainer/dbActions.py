@@ -28,21 +28,32 @@ def db_action(action: str):
             
             cur.execute(action)
             db_connection.commit() 
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        print("SQL do_action Error: ", error)
+    
+def db_fetch(sql: str):
+    print("DB FETCH: " + sql)
+    try:
+        with db_connection.cursor() as cur:
+            
+            cur.execute(sql)
+            db_connection.commit() 
             
             res = tuple(cur.fetchall())
             return res
 
     except (Exception, psycopg2.DatabaseError) as error:
-        print("SQL do_action Error: ", error)
+        print("SQL db_fetch Error: ", error)
         return Tuple()
 
-def insert_app_to_db(id: int, name: str, description: str, category: str ):
+def insert_app_to_db(id: int, name: str, description: str, category: str, rating: float, **kw):
     
-    sql = f"""INSERT INTO public.apps(id, name, description, rating, category) VALUES ({id}, '{name}', '{description}', {0}, '{category}') ON CONFLICT DO NOTHING;"""
+    sql = f"""INSERT INTO public.apps(id, name, description, rating, category) VALUES ({id}, '{name}', '{description}', {rating}, '{category}') ON CONFLICT DO NOTHING;"""
     
     db_action(sql)
     
-def add_purchase_do_db(app_addr: str, creator_addr: str, purchaser_addr: str):
+def add_purchase_do_db(app_addr: str, creator_addr: str, purchaser_addr: str, **kw):
     sql = f"""INSERT INTO public.purchases(app_addr, creator_addr, purchaser_addr) VALUES ('{app_addr}', '{creator_addr}', '{purchaser_addr}') ON CONFLICT DO NOTHING;"""
     db_action(sql)
 
@@ -51,17 +62,16 @@ def get_filtered_app_ids(offset, length, textFilter, categoryFilter, ratingFilte
     sql = f"""SELECT id 
             FROM public.apps 
             WHERE 
-                name ILIKE '%{textFilter}%' 
+                (name ILIKE '%{textFilter}%' OR description ILIKE '%{textFilter}%')
                 AND
                 category ILIKE '%{categoryFilter}%' 
                 AND 
                 rating >= {ratingFilter} 
             ORDER BY id ASC
             OFFSET {offset} 
-            LIMIT {length};
-           
+            LIMIT {length};   
         """
-    raw_res = db_action(sql)
+    raw_res = db_fetch(sql)
     print("raw res: ", raw_res)
     ids = [res[0] for res in raw_res]
     
