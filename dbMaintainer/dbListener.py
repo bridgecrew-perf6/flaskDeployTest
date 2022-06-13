@@ -1,8 +1,6 @@
 
-print("A")
 import pprint
 from web3 import Web3
-print("B")
 import asyncio
 from threading import Thread
 from contractInfo import dappstore_contract, app_created_filter, user_purchased_filter
@@ -11,12 +9,11 @@ import dbActions
 
 
 
-######## Blockchain ##############
 
 
 
-def handle_event(event):
-    print(Web3.toJSON(event))
+# def handle_event(event):
+#     print(Web3.toJSON(event))
 
 
 # asynchronous defined function to loop
@@ -71,19 +68,23 @@ async def purchases_listener():
 
 
 if __name__ == "__main__":
+    print("RUNNING dAppstore DB LISTENER")
+
+    
     # insert_app_to_db(id=1, name="App 1", description="App 1 Description", category="App 1 Category")
+    dbActions.get_filtered_app_ids(offset=0, length=10, textFilter="", categoryFilter="", ratingFilter=0)
+    
+    # loop = asyncio.new_event_loop()
+    # asyncio.set_event_loop(loop)
+    # try:
+    #     loop.run_until_complete(
+    #         asyncio.gather(
+    #             # log_loop(app_created_filter, 1),
+    #             purchases_listener(),
+    #             )
+    #         )
+    # finally:
+    #     # close loop to free up system resources
+    #     print("Blockching Listener Task END")
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(
-            asyncio.gather(
-                # log_loop(app_created_filter, 1),
-                purchases_listener(),
-                )
-            )
-    finally:
-        # close loop to free up system resources
-        print("Blockching Listener Task END")
-
-        loop.close()
+    #     loop.close()
