@@ -91,11 +91,9 @@ def hello_world():
 @app.route("/apps/filtered/<offset>/<length>/<rating_filter>/<category_filter>", methods=['GET'], defaults={'text_filter': ""})
 @app.route("/apps/filtered/<offset>/<length>/<rating_filter>/<category_filter>/", methods=['GET'], defaults={'text_filter': ""})
 @app.route("/apps/filtered/<offset>/<length>/<rating_filter>/<category_filter>/<text_filter>", methods=['GET'])
-
 def get_apps_filtered(offset, length, text_filter, rating_filter, category_filter):
     
     rating_filter = float(rating_filter)
-    
         
     if(category_filter == "ALL"):
         category_filter = ""
