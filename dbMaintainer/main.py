@@ -3,9 +3,12 @@ import pprint
 from web3 import Web3
 import asyncio
 from threading import Thread
-from contractInfo import dappstore_contract, app_created_filter, user_purchased_filter, app_rated_filter
+from contractInfo import dappstore_contract, app_created_filter, user_purchased_filter, app_rated_filter, app_updated_filter
 import dbActions
-        
+
+
+gathered_prev_creations=False
+
 async def purchases_listener():
     
     def extract_purchase_event_args(event_data):
@@ -26,10 +29,13 @@ async def purchases_listener():
             'purchaser_addr': event_data_args.buyer
             }
             
+    while not gathered_prev_creations:
+        await asyncio.sleep(1)
     
     prev_event_datas = user_purchased_filter.get_all_entries()
     print("Num of prev purchases events: " + str(len(prev_event_datas)))
     # Get all previous enteries
+    
     for event_data in prev_event_datas:
         try:
             dbActions.add_purchase_do_db(**extract_purchase_event_args(event_data))
@@ -70,7 +76,9 @@ async def rating_listener():
             'rating': rating
             }
 
-      
+    while not gathered_prev_creations:
+        await asyncio.sleep(1)
+        
     prev_event_datas = app_rated_filter.get_all_entries()
     print("Num of prev rating events: " + str(len(prev_event_datas)))
     
@@ -91,7 +99,6 @@ async def rating_listener():
             print("rating_listener Exception: ", e)
             
         await asyncio.sleep(1)
-
 
 
 
@@ -130,8 +137,8 @@ async def creation_listener():
             dbActions.insert_app_to_db(**extract_creation_event_args(event_data))
         except Exception as e:
             print("creation_listener Exception: ", e)
-    
-    
+    global gathered_prev_creations
+    gathered_prev_creations = True
     while True:
         try:
             for event_data in app_created_filter.get_new_entries():
@@ -141,6 +148,58 @@ async def creation_listener():
             
         await asyncio.sleep(1)
 
+async def update_listener():
+    async def extract_update_event_args(update_event_data):
+        event_data_args = update_event_data.args
+        app_id = event_data_args.app_id
+        
+        print(pprint.pp(event_data_args))
+        print("Updated App ID: ", app_id)
+        
+        get_apps_res = dappstore_contract.functions.getAppBatch(app_id, 1).call()
+        if len(get_apps_res) == 0:
+            print("App not found")
+            return None
+        
+        app_info = get_apps_res[0]
+        app_name = app_info[1]
+        app_description = app_info[2]
+        print("Updated App Name: ", app_name)
+
+
+        return {
+            'app_id': app_id,
+            'name': app_name,
+            'description': app_description
+            }
+
+    while not gathered_prev_creations:
+        await asyncio.sleep(1)
+        
+    prev_event_datas = app_updated_filter.get_all_entries()
+    print("Num of prev update events: " + str(len(prev_event_datas)))
+    print("Prev event datas: " + str(prev_event_datas))
+    
+    # Get all previous enteries
+    for event_data in prev_event_datas:
+        try:
+            extracted_event_args = await extract_update_event_args(event_data)
+            if extracted_event_args is not None:
+                dbActions.update_app_name_description_db(**extracted_event_args)
+        except Exception as e:
+            print("update_listener Exception: ", e)
+    
+    
+    while True:
+        try:
+            for event_data in app_updated_filter.get_new_entries():
+                print("GOT Update EVENT")
+                extracted_event_args = await extract_update_event_args(event_data)
+                dbActions.update_app_name_description_db(**extracted_event_args)
+        except Exception as e:
+            print("update_listener Exception: ", e)
+            
+        await asyncio.sleep(1)
 
 if __name__ == "__main__":
     print("RUNNING dAppstore DB LISTENER")
@@ -155,9 +214,10 @@ if __name__ == "__main__":
             loop.run_until_complete(
                 asyncio.gather(
                     # log_loop(app_created_filter, 1),
-                    purchases_listener(),
+                    #purchases_listener(),
                     creation_listener(),
-                    rating_listener()
+                    rating_listener(),
+                    update_listener()
                     )
                 )
         finally:

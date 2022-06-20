@@ -81,3 +81,7 @@ def get_filtered_app_ids(offset, length, textFilter, categoryFilter, ratingFilte
 def update_app_rating_db(app_id: int, rating: float):
     sql = f"""UPDATE public.apps SET rating = {rating} WHERE id = {app_id};"""
     db_action(sql)
+    
+def update_app_name_description_db(app_id: int, name: str, description: str):
+    sql = f"""UPDATE public.apps SET name = '{name}', description = '{description}' WHERE id = {app_id};"""
+    db_action(sql)
